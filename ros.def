@@ -11,8 +11,9 @@ From:  osrf/ros:{{version}}-desktop
     # 	   	   ros-{{version}}-octomap \
 	# 	   ros-{{version}}-tf2-geometry-msgs 
     # apt -y install tmux
-    # # apt -y install snapd
+    # apt -y install snapd
     # apt -y install curl
+    # apt -y install qt5-default
     # apt -y install apt-transport-https
     # apt -y install gpg
     # # systemctl enable snapd
