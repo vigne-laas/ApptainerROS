@@ -1,0 +1,20 @@
+Bootstrap: localimage
+From: {{version}}.sif
+
+%arguments
+    version=noetic
+    
+%post
+    echo Installing additional packages for {{version}} in the Architecture
+    apt -y update
+    apt -y upgrade
+    mkdir -p /home/{{user}}/softwares
+    
+
+%environment 
+    export PS1="{{version}}>>" 
+    # export alias code='code --no-sandbox user-data-dir=/home/avigne'
+
+    
+%help
+    This container allows to run ROS {{version}} under Ubuntu 22.04 .

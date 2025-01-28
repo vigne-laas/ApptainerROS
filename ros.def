@@ -7,30 +7,11 @@ From:  osrf/ros:{{version}}-desktop
 %post
     echo "Installing additional packages for " {{version}}
     apt -y update
-    # apt -y install ros-{{version}}-camera-info-manager \
-    # 	   	   ros-{{version}}-octomap \
-	# 	   ros-{{version}}-tf2-geometry-msgs 
-    # apt -y install tmux
-    # # apt -y install snapd
-    # apt -y install curl
-    # apt -y install apt-transport-https
-    # apt -y install gpg
-    # # systemctl enable snapd
-    # curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg \
-    #     && mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg \
-    #     && sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
-    # echo "vs-code versions:" && apt-cache policy code
-    # apt-get update && apt-get install -y code=1.84.2-1699528352 \
-    #     && apt-get install -f
-    # cp /usr/lib/x86_64-linux-gnu/libxcb.so.1 /usr/share/code/ \
-    #     && cp /usr/lib/x86_64-linux-gnu/libxcb.so.1.1.0 /usr/share/code/ \
-    #     && sed -i 's/BIG-REQUESTS/_IG-REQUESTS/' /usr/share/code/libxcb.so.1 \
-    #     && sed -i 's/BIG-REQUESTS/_IG-REQUESTS/' /usr/share/code/libxcb.so.1.1.0
+    apt -y upgrade
 
 
 %environment 
     export PS1="{{version}}>>" 
-    # export alias code='code --no-sandbox user-data-dir=/home/avigne'
 
     
 %help

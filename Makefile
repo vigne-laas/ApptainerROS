@@ -29,10 +29,15 @@ all: build deploy
 build:
 	@echo "Building $(APPTAINER)..."
 	apptainer build --sandbox --build-arg version=$(VERSION) $(VERSION).sif ros.def
-	# sudo apptainer build --force $(VERSION).sif ros.def 
 
 # Deploy the apptainer
 deploy: build
+	@echo "Deploying $(APPTAINER)..."
+	sudo mkdir -p $(TARGET_DIR)
+	sudo cp setup.sh $(TARGET_DIR)/setup.sh
+	sudo sed -i 's|APPTAINER_PATH|$(shell pwd)\/$(VERSION).sif|' $(TARGET_DIR)/setup.sh
+
+archi:build
 	@echo "Deploying $(APPTAINER)..."
 	sudo mkdir -p $(TARGET_DIR)
 	sudo cp setup.sh $(TARGET_DIR)/setup.sh
