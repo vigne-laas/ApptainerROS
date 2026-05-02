@@ -1,0 +1,4 @@
+# Apptainer build artifacts (regenerated via `make build`)
+archi-sandbox/
+archi.sif
+*.sif

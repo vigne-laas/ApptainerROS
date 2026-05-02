@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Wrapper apptainer exec pour le dispatcher web et l'usage scripte.
+# Lance une commande dans le conteneur archi avec :
+#   - GPU NVIDIA (--nv)
+#   - workspace catkin bindé (host_parent/ws -> /ws)
+#   - sourcing automatique de ROS et /ws/devel via %environment
+#
+# Usage :
+#   ./ros1exec rosrun mon_pkg mon_node
+#   ./ros1exec roslaunch mon_pkg setup.launch arg:=val
+#
+# Préfère le sandbox writable (mode dev) sinon retombe sur archi.sif (frozen).
+
+set -eu
+
+APPTAINER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARCHI_DIR="${APPTAINER_ROOT}/archi-sandbox"
+ARCHI_SIF="${APPTAINER_ROOT}/archi.sif"
+WS_HOST="$(cd "${APPTAINER_ROOT}/.." && pwd)"
+
+if [ -d "$ARCHI_DIR" ]; then
+    TARGET="$ARCHI_DIR"
+elif [ -f "$ARCHI_SIF" ]; then
+    TARGET="$ARCHI_SIF"
+else
+    echo "Erreur: ni $ARCHI_DIR ni $ARCHI_SIF trouvé. Lance 'make build' d'abord." >&2
+    exit 1
+fi
+
+if [ "$#" -eq 0 ]; then
+    echo "Usage: $0 <command> [args...]" >&2
+    echo "Exemple: $0 rosrun ontologenius ontologenius_core" >&2
+    exit 2
+fi
+
+NV_FLAG=""
+[ "${NV:-}" = "1" ] && NV_FLAG="--nv"
+
+X11_BIND=""
+[ -d /tmp/.X11-unix ] && X11_BIND="--bind /tmp/.X11-unix:/tmp/.X11-unix"
+
+exec apptainer exec \
+    $NV_FLAG \
+    --bind "${WS_HOST}:/ws" \
+    $X11_BIND \
+    "$TARGET" \
+    bash -c 'source /opt/ros/noetic/setup.bash 2>/dev/null; [ -f /ws/devel/setup.bash ] && source /ws/devel/setup.bash; [ -d /opt/bullet3/install ] && export BULLET_INSTALL_PATH=/opt/bullet3/install && export LD_LIBRARY_PATH=/opt/bullet3/install/lib:$LD_LIBRARY_PATH; exec "$@"' _ "$@"

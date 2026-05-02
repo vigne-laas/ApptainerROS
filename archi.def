@@ -1,20 +1,90 @@
 Bootstrap: localimage
-From: {{version}}.sif
+From: noetic.sif
 
-%arguments
-    version=noetic
-    
+%files
+    tmux.conf /etc/tmux.conf
+
 %post
-    echo Installing additional packages for {{version}} in the Architecture
-    apt -y update
-    apt -y upgrade
-    mkdir -p /home/{{user}}/softwares
-    
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
 
-%environment 
-    export PS1="{{version}}>>" 
-    # export alias code='code --no-sandbox user-data-dir=/home/avigne'
+    # Mountpoint pour le workspace catkin binde depuis le host
+    # (--bind avec --writable n'auto-cree pas les destinations)
+    mkdir -p /ws
 
-    
+    apt-get update
+
+    # ============================================================
+    # Deps systeme de l'archi these (a remplir au fil du dev)
+    #
+    # Discipline : a chaque "apt install <pkg>" effectue dans le
+    # sandbox writable (via "make shell"), ajouter <pkg> ici pour
+    # preserver la reproductibilite du build from-scratch.
+    # ============================================================
+
+    # ANTLR (utilise par Procedural pour generer le parseur)
+    apt-get install -y --no-install-recommends \
+        antlr4 \
+        libantlr4-runtime-dev
+
+    # pynput (utilise par simulated_robot/restaurant_robot_simulator.py
+    # pour la teleoperation clavier ; absent de python3-* apt en focal)
+    pip3 install pynput
+
+    # Bullet for overworld physics (libs absentes du paquet libbullet-dev)
+    apt-get install -y --no-install-recommends \
+        cmake build-essential
+
+    cd /opt && \
+        git clone --depth 1 https://github.com/bulletphysics/bullet3.git && \
+        cd bullet3 && mkdir build install && cd build && \
+        cmake .. -DCMAKE_INSTALL_PREFIX=/opt/bullet3/install \
+                 -DBUILD_SHARED_LIBS=ON \
+                 -DCMAKE_BUILD_TYPE=Release \
+                 -DBUILD_PYBULLET=OFF && \
+        make -j$(nproc) install && \
+        cd /opt && rm -rf bullet3/build bullet3/.git
+
+    # Deps additionnelles installees a la volee (rosdep + manuel) :
+    # ros-noetic-rosbridge-server ros-noetic-rosbridge-suite ros-noetic-tf2-eigen
+    # ros-noetic-pcl-ros ros-noetic-pcl-conversions ros-noetic-audio-capture
+    # ros-noetic-audio-play python3-flask python3-jsonschema python3-pytest
+    # python3-gi qtbase5-dev gstreamer1.0-tools gir1.2-gstreamer-1.0
+    # gstreamer1.0-alsa gstreamer1.0-plugins-base gir1.2-gst-plugins-base-1.0
+    # gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good
+    # libgstreamer-plugins-good1.0-0 festival festvox-kallpc16k flite
+    # libbullet-dev (headers std)
+    # -> a integrer dans cette section quand le build est valide
+
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    # Bypass /ros_entrypoint.sh : son `source setup.bash --` declenche du bruit
+    # ("source setup.sh", "xhost not found", "sudo: must be setuid") quand
+    # $PWD/setup.sh n'existe pas. Le sourcing de ROS est fait par SOURCE_ROS
+    # dans le Makefile (ou manuellement dans apptainer shell).
+    cat > /ros_entrypoint.sh << 'ENTRY_EOF'
+#!/bin/bash
+exec "$@"
+ENTRY_EOF
+    chmod +x /ros_entrypoint.sh
+
+%environment
+    # NE PAS sourcer ROS ici : genere du bruit "source setup.sh" quand $PWD
+    # ne pointe pas vers un workspace catkin valide. Le Makefile s'en charge
+    # via SOURCE_ROS, et en mode `apptainer shell` interactif l'utilisateur
+    # peut faire `source /opt/ros/noetic/setup.bash` a la main.
+    export PS1="[archi] \\w\\$ "
+    export ROS_DISTRO=noetic
+    if [ -d /opt/bullet3/install ]; then
+        export BULLET_INSTALL_PATH=/opt/bullet3/install
+        export LD_LIBRARY_PATH=/opt/bullet3/install/lib:$LD_LIBRARY_PATH
+    fi
+
 %help
-    This container allows to run ROS {{version}} under Ubuntu 22.04 .
+    Surcouche projet these : installe les deps systeme specifiques de l'archi
+    ROS1 (ontologenius, overworld, mementar, etc.).
+
+    Workspace catkin bindé depuis le host sur /ws (src/, build/, devel/).
+    Mode dev : sandbox writable (apt install a la volee, append au .def).
+    Mode archive : "make freeze" produit archi.sif immutable.
